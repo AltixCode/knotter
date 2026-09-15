@@ -156,7 +156,11 @@ export function KnotBoard(props: {
   const { width, height } = useWindowDimensions();
   const { spacing, colors, radius } = useTheme();
   const gap = props.puzzle.size > 6 ? 2 : 3;
-  const available = Math.min(width - spacing.base * 2, height * 0.5, 460);
+  // Sized from the space there is. A flat cap set against a small phone leaves
+  // the board in the top third of a 6.9" screen with the rest empty, and a 13"
+  // iPad worse — which reads as an app nobody has opened on a modern device.
+  const cap = width >= 700 ? 690 : 552;
+  const available = Math.min(width - spacing.base * 2, height * 0.58, cap);
   const side = Math.floor((available - gap * (props.puzzle.size - 1)) / props.puzzle.size);
   const board = side * props.puzzle.size + gap * (props.puzzle.size - 1);
 
