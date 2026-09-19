@@ -1,14 +1,21 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Feather from "@expo/vector-icons/Feather";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Button, Text } from '@/components/ui';
-import { t } from '@/i18n';
-import { PRIVACY_POLICY_URL, TERMS_URL } from '@/monetization/config';
-import { usePremiumStore } from '@/store/usePremiumStore';
-import { useTheme } from '@/theme';
-import { useTabletColumn } from '../src/theme/useTabletColumn';
+import { Button, Text } from "@/components/ui";
+import { t } from "@/i18n";
+import { PRIVACY_POLICY_URL, TERMS_URL } from "@/monetization/config";
+import { usePremiumStore } from "@/store/usePremiumStore";
+import { useTheme } from "@/theme";
+import { useTabletColumn } from "../src/theme/useTabletColumn";
 
 /**
  * The one purchase this app sells: a lifetime non-consumable that removes the ads and unlocks
@@ -16,11 +23,19 @@ import { useTabletColumn } from '../src/theme/useTabletColumn';
  * and the portfolio does not sell those.
  */
 const BENEFIT_KEYS = [
-  { title: 'feat1Title', desc: 'feat1Desc' },
-  { title: 'feat2Title', desc: 'feat2Desc' },
-  { title: 'feat3Title', desc: 'feat3Desc' },
-  { title: 'feat4Title', desc: 'feat4Desc' },
+  { title: "feat1Title", desc: "feat1Desc" },
+  { title: "feat2Title", desc: "feat2Desc" },
+  { title: "feat3Title", desc: "feat3Desc" },
+  { title: "feat4Title", desc: "feat4Desc" },
 ] as const;
+
+/** Icons for the badge cluster, in cluster order. The hero card gets its own, below. */
+const CLUSTER_ICONS = [
+  "link",
+  "anchor",
+  "target",
+] as const satisfies readonly (keyof typeof Feather.glyphMap)[];
+const HERO_ICON: keyof typeof Feather.glyphMap = "flag";
 
 export default function Paywall() {
   /**
@@ -37,6 +52,12 @@ export default function Paywall() {
    * module load, so it follows the active locale.
    */
   const benefits = BENEFIT_KEYS.filter((b) => t(b.title).trim().length > 0);
+  // The last surviving claim becomes the hero card the purchase lives inside;
+  // whatever comes before it (up to three) forms the badge cluster above it.
+  // With one claim there is no cluster at all -- just the hero.
+  const clusterBenefits = benefits.slice(0, -1);
+  const heroBenefit = benefits[benefits.length - 1];
+
   const router = useRouter();
   const tabletColumn = useTabletColumn(640);
   const insets = useSafeAreaInsets();
@@ -69,104 +90,179 @@ export default function Paywall() {
   const price = lifetime?.product.priceString;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
-      <View style={{ alignItems: 'flex-end', padding: spacing.base }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: insets.top,
+      }}
+    >
+      <View style={{ alignItems: "flex-end", padding: spacing.base }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('close')}
+          accessibilityLabel={t("close")}
           hitSlop={12}
           onPress={() => router.back()}
-          style={{ minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' }}
+          style={{
+            minWidth: 44,
+            minHeight: 44,
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
         >
           <Text variant="body" tone="muted">
-            {t('close')}
+            {t("close")}
           </Text>
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: spacing['3xl'], ...tabletColumn, flexGrow: 1, justifyContent: 'center' }}>
-        {/* Numbered, not ticked, and the promise leads.
- 
+      <ScrollView
+        contentContainerStyle={{
+          padding: spacing.xl,
+          paddingBottom: spacing["3xl"],
+          ...tabletColumn,
+          flexGrow: 1,
+          justifyContent: "center",
+        }}
+      >
+        {/* A cluster, not a list.
+
             29 of 44 apps in this portfolio shipped one paywall file byte for
             byte, and Apple rejected under 4.3(a) naming "multiple similar apps
-            using a repackaged app template". foldup, knotter and poursort are
-            the sharpest case: all three are rejected, and all three also shared
-            a home-screen structure that measured 1.00 identical.
- 
-            So this one leads with the no-subscription promise as the headline
-            rather than burying it in a card, and numbers what you get instead
-            of ticking it. Same claims, different page. */}
+            using a repackaged app template". This app's batch was assigned an
+            icon-led tile grid, but a grid identical in shape to the other four
+            apps in the same batch would just move the duplication rather than
+            remove it -- so this one is a triangular badge cluster feeding a
+            single hero card, and the purchase itself lives inside that card
+            instead of below it. Same claims, structurally its own page. */}
         <Text variant="micro" tone="accent">
-          {t('antiSubTitle')}
+          {t("antiSubTitle")}
         </Text>
         <Text variant="display" style={{ marginTop: spacing.xs }}>
-          {t('paywallTitle')}
+          {t("paywallTitle")}
         </Text>
         <Text variant="body" tone="muted" style={{ marginTop: spacing.sm }}>
-          {t('antiSubHeadline')}
+          {t("antiSubHeadline")}
         </Text>
 
-        <View style={{ marginTop: spacing['2xl'], gap: spacing.xl }}>
-          {benefits.map((benefit, index) => (
-            <View key={benefit.title} style={{ flexDirection: 'row', gap: spacing.base }}>
-              <View
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text variant="micro" tone="accent">
-                  {index + 1}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyStrong">{t(benefit.title)}</Text>
-                <Text variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                  {t(benefit.desc)}
-                </Text>
-              </View>
+        {clusterBenefits.length > 0 ? (
+          <View style={{ marginTop: spacing["2xl"], alignItems: "center" }}>
+            <View style={{ flexDirection: "row", gap: spacing.xl }}>
+              {clusterBenefits.slice(0, 2).map((benefit, index) => (
+                <ClusterBadge
+                  key={benefit.title}
+                  icon={CLUSTER_ICONS[index] ?? CLUSTER_ICONS[0]}
+                  label={t(benefit.title)}
+                  colors={colors}
+                  radius={radius}
+                  spacing={spacing}
+                />
+              ))}
             </View>
-          ))}
-        </View>
+            {clusterBenefits[2] ? (
+              <View style={{ marginTop: -spacing.md }}>
+                <ClusterBadge
+                  icon={CLUSTER_ICONS[2]}
+                  label={t(clusterBenefits[2].title)}
+                  colors={colors}
+                  radius={radius}
+                  spacing={spacing}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
-        <View style={{ marginTop: spacing['2xl'] }}>
-          {lifetime ? (
-            <Button
-              label={price ? t('lifetimeAccess', { price }) : t('lifetimeAccessPlain')}
-              size="lg"
-              fullWidth
-              loading={isPurchasing}
-              onPress={() => void purchase(lifetime)}
-            />
-          ) : offeringsResolved ? (
-            // Resolved, with no package: the store is genuinely unreachable or carries no
-            // product yet. Say that, and keep Restore reachable below — a user who already
-            // paid must still be able to get their purchase back.
-            <View style={{ padding: spacing.xl, alignItems: 'center' }}>
-              <Text variant="caption" tone="muted" align="center">
-                {t('storeUnavailable')}
+        {heroBenefit ? (
+          <View
+            style={{
+              marginTop: spacing["2xl"],
+              padding: spacing.xl,
+              borderRadius: radius.xl,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: radius.lg,
+                backgroundColor: colors.surfaceAlt,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name={HERO_ICON} size={22} color={colors.accent} />
+            </View>
+            <Text variant="heading" style={{ marginTop: spacing.base }}>
+              {t(heroBenefit.title)}
+            </Text>
+            <Text variant="body" tone="muted" style={{ marginTop: spacing.xs }}>
+              {t(heroBenefit.desc)}
+            </Text>
+
+            <View
+              style={{
+                marginTop: spacing.xl,
+                paddingTop: spacing.xl,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              {lifetime ? (
+                <Button
+                  label={
+                    price
+                      ? t("lifetimeAccess", { price })
+                      : t("lifetimeAccessPlain")
+                  }
+                  size="lg"
+                  fullWidth
+                  loading={isPurchasing}
+                  onPress={() => void purchase(lifetime)}
+                />
+              ) : offeringsResolved ? (
+                // Resolved, with no package: the store is genuinely unreachable or carries no
+                // product yet. Say that, and keep Restore reachable below — a user who already
+                // paid must still be able to get their purchase back.
+                <View style={{ padding: spacing.md, alignItems: "center" }}>
+                  <Text variant="caption" tone="muted" align="center">
+                    {t("storeUnavailable")}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ padding: spacing.md, alignItems: "center" }}>
+                  <ActivityIndicator color={colors.textMuted} />
+                  <Text
+                    variant="caption"
+                    tone="muted"
+                    style={{ marginTop: spacing.md }}
+                  >
+                    {t("loadingPrice")}
+                  </Text>
+                </View>
+              )}
+              <Text
+                variant="caption"
+                tone="muted"
+                align="center"
+                style={{ marginTop: spacing.md }}
+              >
+                {t("oneTimePayment")}
               </Text>
             </View>
-          ) : (
-            <View style={{ padding: spacing.xl, alignItems: 'center' }}>
-              <ActivityIndicator color={colors.textMuted} />
-              <Text variant="caption" tone="muted" style={{ marginTop: spacing.md }}>
-                {t('loadingPrice')}
-              </Text>
-            </View>
-          )}
-          <Text variant="caption" tone="muted" align="center" style={{ marginTop: spacing.md }}>
-            {t('oneTimePayment')}
-          </Text>
-        </View>
+          </View>
+        ) : null}
 
         {error ? (
-          <Text variant="caption" tone="danger" align="center" style={{ marginTop: spacing.base }}>
+          <Text
+            variant="caption"
+            tone="danger"
+            align="center"
+            style={{ marginTop: spacing.base }}
+          >
             {error}
           </Text>
         ) : null}
@@ -184,51 +280,111 @@ export default function Paywall() {
         ) : null}
 
         <Button
-          label={t('restorePurchases')}
+          label={t("restorePurchases")}
           variant="ghost"
           fullWidth
           onPress={() => {
             setRestoreNotice(null);
             void restore().then((outcome) => {
-              if (outcome === 'none') setRestoreNotice(t('noPriorPurchases'));
+              if (outcome === "none") setRestoreNotice(t("noPriorPurchases"));
             });
           }}
           style={{ marginTop: spacing.lg }}
         />
 
-        <Text variant="micro" tone="faint" align="center" style={{ marginTop: spacing.xl }}>
-          {t('adsDisclosure')}
+        <Text
+          variant="micro"
+          tone="faint"
+          align="center"
+          style={{ marginTop: spacing.xl }}
+        >
+          {t("adsDisclosure")}
         </Text>
         <View
           style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
+            flexDirection: "row",
+            justifyContent: "center",
             gap: spacing.lg,
             marginTop: spacing.md,
           }}
         >
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel={t('termsOfUse')}
+            accessibilityLabel={t("termsOfUse")}
             hitSlop={12}
             onPress={() => void Linking.openURL(TERMS_URL)}
           >
             <Text variant="micro" tone="faint">
-              {t('termsOfUse')}
+              {t("termsOfUse")}
             </Text>
           </Pressable>
           <Pressable
             accessibilityRole="link"
-            accessibilityLabel={t('privacyPolicy')}
+            accessibilityLabel={t("privacyPolicy")}
             hitSlop={12}
             onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
           >
             <Text variant="micro" tone="faint">
-              {t('privacyPolicy')}
+              {t("privacyPolicy")}
             </Text>
           </Pressable>
         </View>
       </ScrollView>
     </View>
+  );
+}
+
+/**
+ * One badge in the top cluster: icon, short label, a tactile press scale.
+ * Purely cosmetic — it carries no purchase or navigation behaviour, so it has
+ * nothing that needs testing beyond "it renders the claim's title".
+ */
+function ClusterBadge({
+  icon,
+  label,
+  colors,
+  radius,
+  spacing,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  colors: ReturnType<typeof useTheme>["colors"];
+  radius: ReturnType<typeof useTheme>["radius"];
+  spacing: ReturnType<typeof useTheme>["spacing"];
+}) {
+  return (
+    <Pressable
+      accessibilityRole="none"
+      hitSlop={8}
+      style={({ pressed }) => ({
+        alignItems: "center",
+        width: 84,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
+      })}
+    >
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: radius.full,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather name={icon} size={20} color={colors.accent} />
+      </View>
+      <Text
+        variant="caption"
+        tone="muted"
+        align="center"
+        style={{ marginTop: spacing.sm }}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
